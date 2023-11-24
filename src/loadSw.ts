@@ -21,7 +21,7 @@ export const loadSw = async () => {
     } else if (registration.installing) {
       console.log("Waiting for Service Worker to activate");
 
-      return await new Promise((resolve) => {
+      return await new Promise(() => {
         registration.installing?.addEventListener("statechange", (e) => {
           const event = e as Event & { target: { state: string } };
           console.log("Service Worker state changed", e, event.target?.state);

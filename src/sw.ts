@@ -2,6 +2,7 @@
 
 import { inflate } from "pako";
 import arweaveGraphql from "arweave-graphql";
+import { base64, base64url } from "rfc4648";
 const gqlClient = arweaveGraphql("https://arweave.net/graphql", {
   fetch: fetch,
 });
@@ -55,7 +56,7 @@ self.addEventListener("activate", (e) => {
 // const arRegex = /^ar:\/\/([a-zA-Z0-9_-]{43})$/;
 const arweaveNetGatewayRegex = /^https:\/\/arweave\.net\/([a-zA-Z0-9_-]{43})$/;
 const ardriveRegex =
-  /^https:\/\/ardrive\/([0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12})$/;
+  /^https:\/\/ardrive\/([0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12})(?:#([a-zA-Z0-9_-]{43}))?$/;
 
 self.addEventListener("fetch", (e) => {
   const event = e as FetchEvent;
@@ -110,7 +111,7 @@ self.addEventListener("fetch", (e) => {
         const ardriveUuid = m[1];
         console.log("Ardrive URL detected", ardriveUuid);
 
-        const tx = await getTxWhere({
+        const ardriveFileTx = await getTxWhere({
           tags: [
             {
               name: "File-Id",
@@ -118,17 +119,100 @@ self.addEventListener("fetch", (e) => {
             },
           ],
         });
-        console.log("Ardrive Transaction", tx);
+        console.log("Ardrive File Transaction", ardriveFileTx);
 
         type ArdriveFileEntity = {
           dataTxId: string;
+          dataContenType: string;
         };
-        const fileEntityData = (await (
-          await fetch(`https://arweave.net/${tx.id}`)
-        ).json()) as ArdriveFileEntity;
-        console.log("Ardrive File Entity", fileEntityData);
 
-        return await fetch(`https://arweave.net/${fileEntityData.dataTxId}`);
+        const ardriveFileKeyBase64UrlUnpadded = m[2];
+        if (ardriveFileKeyBase64UrlUnpadded) {
+          console.log("Ardrive File Key", ardriveFileKeyBase64UrlUnpadded);
+
+          // base
+          const ardriveFileKey = base64url.parse(
+            ardriveFileKeyBase64UrlUnpadded,
+            {
+              loose: true,
+            }
+          );
+
+          const key = await crypto.subtle.importKey(
+            "raw",
+            ardriveFileKey,
+            "AES-GCM",
+            false,
+            ["decrypt"]
+          );
+          const decryptParams = {
+            name: ardriveFileTx.tags
+              .find((t) => t.name.toLowerCase() === "cipher")!
+              .value.replace("256", ""),
+            iv: base64.parse(
+              ardriveFileTx.tags.find(
+                (t) => t.name.toLowerCase() === "cipher-iv"
+              )!.value
+            ),
+          };
+
+          const fileEntityDataEncrypted = await (
+            await fetch(`https://arweave.net/${ardriveFileTx.id}`)
+          ).arrayBuffer();
+
+          const fileEntityData = await crypto.subtle.decrypt(
+            decryptParams,
+            key,
+            fileEntityDataEncrypted
+          );
+          const fileEntity = JSON.parse(
+            new TextDecoder().decode(fileEntityData)
+          ) as ArdriveFileEntity;
+          console.log("Ardrive File Entity (decrypted)", fileEntity);
+
+          const fileDataTx = await getTx(fileEntity.dataTxId);
+          console.log("Ardrive File Data Transaction", fileDataTx);
+
+          const fileDataResponse = await fetch(
+            `https://arweave.net/${fileEntity.dataTxId}`
+          );
+          const fileDataEncrypted = await fileDataResponse.arrayBuffer();
+
+          try {
+            const fileData = await crypto.subtle.decrypt(
+              {
+                ...decryptParams,
+                iv: base64.parse(
+                  fileDataTx.tags.find(
+                    (t) => t.name.toLowerCase() === "cipher-iv"
+                  )!.value
+                ),
+              },
+              key,
+              fileDataEncrypted
+            );
+            return responseWith(
+              fileDataResponse,
+              {
+                "Content-Type": fileEntity.dataContenType,
+              },
+              fileData
+            );
+          } catch (e) {
+            console.error(e);
+            return new Response("Could not decrypt file data", {
+              status: 500,
+              statusText: "Internal Server Error",
+            });
+          }
+        }
+
+        const fileEntity = (await (
+          await fetch(`https://arweave.net/${ardriveFileTx.id}`)
+        ).json()) as ArdriveFileEntity;
+        console.log("Ardrive File Entity", fileEntity);
+
+        return await fetch(`https://arweave.net/${fileEntity.dataTxId}`);
       } else {
         // console.log("Base URL detected", url);
         return await fetch(event.request.url);

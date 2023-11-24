@@ -14,6 +14,7 @@ loadSw().then(async () => {
         <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
       </a>
       <img src="https://ardrive/c7c3572e-f43b-4a6f-b747-89974ea90909" />
+      <img src="https://ardrive/80d488b4-21c1-41ca-9785-52dfc36c1fd1#J2RQJRH07ogvGJzkO73W0r_49yMilO691kGi3xrRhCk" style="width: 200px; height: 200px" />
       <h1>Vite + TypeScript</h1>
       <div class="card">
         <button id="counter" type="button"></button>

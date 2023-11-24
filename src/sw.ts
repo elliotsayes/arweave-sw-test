@@ -17,24 +17,34 @@ self.addEventListener("activate", (e) => {
   console.log("[Service Worker] Activate", e);
 });
 
+const arRegex = /^ar:\/\/([a-zA-Z0-9_-]{43})$/;
+const arweaveNetGatewayRegex = /^https:\/\/arweave\.net\/([a-zA-Z0-9_-]{43})$/;
+
 self.addEventListener("fetch", (e) => {
   const event = e as FetchEvent;
   console.log(`[Service Worker] Fetch ${event.request.url}`);
+
   event.respondWith(
     (async () => {
       const url = event.request.url;
-      const arRegex = /^ar:\/\/([a-zA-Z0-9_-]{43})$/;
       let m: RegExpExecArray | null;
-      if ((m = arRegex.exec(url)) !== null) {
-        console.log("ar:// URL detected", url);
-        // The result can be accessed through the `m`-variable.
-        m.forEach((match, groupIndex) => {
-          console.log(`Found match, group ${groupIndex}: ${match}`);
+      if ((m = arweaveNetGatewayRegex.exec(url)) !== null) {
+        const arweaveTxId = m[1];
+        const arioUrl = `https://ar-io.dev/${arweaveTxId}`;
+        console.log("arweave.net URL detected, redirecting to", arioUrl);
+        const resp = await fetch(arioUrl);
+        return new Response(resp.body, {
+          status: resp.status,
+          statusText: resp.statusText,
+          headers: {
+            ...Object.fromEntries(resp.headers),
+            "Redirect-URL": arioUrl,
+          },
         });
       } else {
         console.log("Base URL detected", url);
+        return await fetch(event.request.url);
       }
-      return await fetch(event.request.url);
     })()
   );
 });

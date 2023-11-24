@@ -9,11 +9,13 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/pako": "^2.0.3",
     "typescript": "^5.2.2",
     "vite": "^5.0.0",
     "vite-plugin-pwa": "^0.17.0"
   },
   "dependencies": {
-    "arweave-graphql": "^0.0.5"
+    "arweave-graphql": "^0.0.5",
+    "pako": "^2.1.0"
   }
 }

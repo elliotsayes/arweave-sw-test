@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 
+import { inflate } from "pako";
 import arweaveGraphql from "arweave-graphql";
 const gqlClient = arweaveGraphql("https://arweave.net/graphql", {
   fetch: fetch,
@@ -47,6 +48,32 @@ self.addEventListener("fetch", (e) => {
 
         const tx = await getTx(arweaveTxId);
         console.log("Transaction", tx);
+
+        const contentEncodingTagValue = tx.tags.find(
+          (t) => t.name.toLowerCase() === "content-encoding"
+        )?.value;
+
+        if (contentEncodingTagValue) {
+          console.log("Content-Encoding", contentEncodingTagValue);
+
+          if (contentEncodingTagValue.toLowerCase() === "gzip") {
+            const resp = await fetch(arioUrl);
+            const body = await resp.arrayBuffer();
+            const inflated = inflate(body);
+            return new Response(inflated, {
+              status: resp.status,
+              statusText: resp.statusText,
+              headers: {
+                ...Object.fromEntries(resp.headers),
+                "Redirect-URL": arioUrl,
+              },
+            });
+          } else {
+            throw new Error(
+              `Unsupported Content-Encoding: ${contentEncodingTagValue}`
+            );
+          }
+        }
 
         const resp = await fetch(arioUrl);
         return new Response(resp.body, {

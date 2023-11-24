@@ -1,5 +1,17 @@
 /// <reference lib="webworker" />
 
+import arweaveGraphql from "arweave-graphql";
+const gqlClient = arweaveGraphql("https://arweave.net/graphql", {
+  fetch: fetch,
+});
+
+const getTx = async (txId: string) => {
+  const queryRes = await gqlClient.getTransactions({
+    ids: [txId],
+  });
+  return queryRes.transactions.edges[0].node;
+};
+
 self.addEventListener(
   "message",
   ({ data }) => {
@@ -17,7 +29,7 @@ self.addEventListener("activate", (e) => {
   console.log("[Service Worker] Activate", e);
 });
 
-const arRegex = /^ar:\/\/([a-zA-Z0-9_-]{43})$/;
+// const arRegex = /^ar:\/\/([a-zA-Z0-9_-]{43})$/;
 const arweaveNetGatewayRegex = /^https:\/\/arweave\.net\/([a-zA-Z0-9_-]{43})$/;
 
 self.addEventListener("fetch", (e) => {
@@ -32,6 +44,10 @@ self.addEventListener("fetch", (e) => {
         const arweaveTxId = m[1];
         const arioUrl = `https://ar-io.dev/${arweaveTxId}`;
         console.log("arweave.net URL detected, redirecting to", arioUrl);
+
+        const tx = await getTx(arweaveTxId);
+        console.log("Transaction", tx);
+
         const resp = await fetch(arioUrl);
         return new Response(resp.body, {
           status: resp.status,
@@ -42,7 +58,7 @@ self.addEventListener("fetch", (e) => {
           },
         });
       } else {
-        console.log("Base URL detected", url);
+        // console.log("Base URL detected", url);
         return await fetch(event.request.url);
       }
     })()

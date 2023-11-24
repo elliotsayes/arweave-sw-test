@@ -13,7 +13,7 @@ loadSw().then(async () => {
       <a href="https://www.typescriptlang.org/" target="_blank">
         <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
       </a>
-      <img src="https://arweave.net/1fRFS50wWSb5wb7ccj8pIwfVrePQwJ7DEUi7ErvR7Hg" />
+      <img src="https://ardrive/c7c3572e-f43b-4a6f-b747-89974ea90909" />
       <h1>Vite + TypeScript</h1>
       <div class="card">
         <button id="counter" type="button"></button>

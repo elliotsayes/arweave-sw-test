@@ -13,6 +13,13 @@ const getTx = async (txId: string) => {
   return queryRes.transactions.edges[0].node;
 };
 
+const getTxWhere = async (
+  variables: Parameters<(typeof gqlClient)["getTransactions"]>[0]
+) => {
+  const queryRes = await gqlClient.getTransactions(variables);
+  return queryRes.transactions.edges[0].node;
+};
+
 const responseWith = (
   response: Response,
   headers?: Record<string, string>,
@@ -47,6 +54,8 @@ self.addEventListener("activate", (e) => {
 
 // const arRegex = /^ar:\/\/([a-zA-Z0-9_-]{43})$/;
 const arweaveNetGatewayRegex = /^https:\/\/arweave\.net\/([a-zA-Z0-9_-]{43})$/;
+const ardriveRegex =
+  /^https:\/\/ardrive\/([0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12})$/;
 
 self.addEventListener("fetch", (e) => {
   const event = e as FetchEvent;
@@ -97,6 +106,28 @@ self.addEventListener("fetch", (e) => {
         return responseWith(resp, {
           "Redirect-URL": arioUrl,
         });
+      } else if ((m = ardriveRegex.exec(url)) !== null) {
+        const ardriveUuid = m[1];
+        console.log("Ardrive URL detected", ardriveUuid);
+
+        const tx = await getTxWhere({
+          tags: [
+            {
+              name: "File-Id",
+              values: [ardriveUuid],
+            },
+          ],
+        });
+        console.log("Ardrive Transaction", tx);
+
+        type ArdriveFileEntity = {
+          dataTxId: string;
+        };
+        const fileEntityData = (await (
+          await fetch(`https://arweave.net/${tx.id}`)
+        ).json()) as ArdriveFileEntity;
+
+        return await fetch(`https://arweave.net/${fileEntityData.dataTxId}`);
       } else {
         // console.log("Base URL detected", url);
         return await fetch(event.request.url);

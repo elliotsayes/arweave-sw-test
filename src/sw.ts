@@ -126,6 +126,7 @@ self.addEventListener("fetch", (e) => {
         const fileEntityData = (await (
           await fetch(`https://arweave.net/${tx.id}`)
         ).json()) as ArdriveFileEntity;
+        console.log("Ardrive File Entity", fileEntityData);
 
         return await fetch(`https://arweave.net/${fileEntityData.dataTxId}`);
       } else {

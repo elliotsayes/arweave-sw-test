@@ -13,6 +13,21 @@ const getTx = async (txId: string) => {
   return queryRes.transactions.edges[0].node;
 };
 
+const responseWith = (
+  response: Response,
+  headers?: Record<string, string>,
+  body?: BodyInit
+) => {
+  return new Response(body ?? response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: {
+      ...Object.fromEntries(response.headers.entries()),
+      ...headers,
+    },
+  });
+};
+
 self.addEventListener(
   "message",
   ({ data }) => {
@@ -57,17 +72,18 @@ self.addEventListener("fetch", (e) => {
           console.log("Content-Encoding", contentEncodingTagValue);
 
           if (contentEncodingTagValue.toLowerCase() === "gzip") {
-            const resp = await fetch(arioUrl);
+            const resp = await fetch(arioUrl, {
+              redirect: "follow",
+            });
             const body = await resp.arrayBuffer();
             const inflated = inflate(body);
-            return new Response(inflated, {
-              status: resp.status,
-              statusText: resp.statusText,
-              headers: {
-                ...Object.fromEntries(resp.headers),
+            return responseWith(
+              resp,
+              {
                 "Redirect-URL": arioUrl,
               },
-            });
+              inflated
+            );
           } else {
             throw new Error(
               `Unsupported Content-Encoding: ${contentEncodingTagValue}`
@@ -75,14 +91,11 @@ self.addEventListener("fetch", (e) => {
           }
         }
 
-        const resp = await fetch(arioUrl);
-        return new Response(resp.body, {
-          status: resp.status,
-          statusText: resp.statusText,
-          headers: {
-            ...Object.fromEntries(resp.headers),
-            "Redirect-URL": arioUrl,
-          },
+        const resp = await fetch(arioUrl, {
+          redirect: "follow",
+        });
+        return responseWith(resp, {
+          "Redirect-URL": arioUrl,
         });
       } else {
         // console.log("Base URL detected", url);

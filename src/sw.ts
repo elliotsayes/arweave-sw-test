@@ -57,7 +57,7 @@ self.addEventListener("fetch", (e) => {
           const data = req.pipe(
             HttpClient.client.fetch(),
             Effect.map((x) => x.stream),
-            Stream.flatMap((x) => x),
+            Stream.flatten(),
             Stream.tap((x) =>
               Effect.succeed(console.log("Chunk Length: ", x.length))
             ),

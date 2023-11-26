@@ -34,7 +34,7 @@ self.addEventListener("fetch", (e) => {
       ) {
         console.log("arweave.net Request: ", url);
 
-        const program = Effect.promise(async () => {
+        const program = Effect.gen(function* (_) {
           const req = HttpClient.request.get(url, {
             acceptJson: true,
           });
@@ -43,13 +43,13 @@ self.addEventListener("fetch", (e) => {
             Effect.map((x) => x.stream),
             Stream.flatten(),
             Stream.tap((x) =>
-              Effect.succeed(console.log("Byte Chunk Length: ", x.length))
+              Effect.sync(() => console.log("Byte Chunk Length: ", x.length))
             ),
             Stream.map((x) => new TextDecoder().decode(x)),
             Stream.map((x) => x.toUpperCase()),
             Stream.map((x) => new TextEncoder().encode(x)),
             Stream.tap((x) =>
-              Effect.succeed(console.log("Text Chunk Length: ", x.length))
+              Effect.sync(() => console.log("Text Chunk Length: ", x.length))
             ),
             Stream.toReadableStream
           );

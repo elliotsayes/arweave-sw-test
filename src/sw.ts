@@ -2,7 +2,6 @@
 
 import { HttpClient } from "@effect/platform";
 import { Effect, Stream } from "effect";
-import { decodeText, encodeText, toReadableStream } from "effect/Stream";
 import { toUpperCase } from "effect/String";
 
 self.addEventListener(
@@ -46,13 +45,13 @@ self.addEventListener("fetch", (e) => {
             Stream.tap((x) =>
               Effect.sync(() => console.log("Byte Chunk Length: ", x.length))
             ),
-            decodeText("utf-8"),
+            Stream.decodeText("utf-8"),
             Stream.tap((x) =>
               Effect.sync(() => console.log("Text Chunk Length: ", x.length))
             ),
             Stream.map(toUpperCase),
-            encodeText,
-            toReadableStream
+            Stream.encodeText,
+            Stream.toReadableStream
           );
 
           return new Response(data, {

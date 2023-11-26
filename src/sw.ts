@@ -3,21 +3,6 @@
 import { HttpClient } from "@effect/platform";
 import { Effect, Stream } from "effect";
 
-const responseWith = (
-  response: Response,
-  headers?: Record<string, string>,
-  body?: BodyInit
-) => {
-  return new Response(body ?? response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: {
-      ...Object.fromEntries(response.headers.entries()),
-      ...headers,
-    },
-  });
-};
-
 self.addEventListener(
   "message",
   ({ data }) => {

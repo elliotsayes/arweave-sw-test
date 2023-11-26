@@ -2,7 +2,6 @@
 
 import { HttpClient } from "@effect/platform";
 import { Effect, Stream } from "effect";
-import { request } from "effect/Effect";
 
 const responseWith = (
   response: Response,
@@ -59,16 +58,23 @@ self.addEventListener("fetch", (e) => {
             Effect.map((x) => x.stream),
             Stream.flatten(),
             Stream.tap((x) =>
-              Effect.succeed(console.log("Chunk Length: ", x.length))
+              Effect.succeed(console.log("Byte Chunk Length: ", x.length))
             ),
-            Stream.map((x) =>
-              new TextEncoder().encode(
-                new TextDecoder().decode(x).toUpperCase()
-              )
+            Stream.map((x) => new TextDecoder().decode(x)),
+            Stream.map((x) => x.toUpperCase()),
+            Stream.map((x) => new TextEncoder().encode(x)),
+            Stream.tap((x) =>
+              Effect.succeed(console.log("Text Chunk Length: ", x.length))
             ),
             Stream.toReadableStream
           );
-          return new Response(data);
+          return new Response(data, {
+            status: 200,
+            statusText: "OK",
+            headers: {
+              "content-type": "text/plain",
+            },
+          });
         });
 
         const transformed = await Effect.runPromise(program);

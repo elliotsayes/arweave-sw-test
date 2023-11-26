@@ -123,7 +123,7 @@ self.addEventListener("fetch", (e) => {
 
         type ArfsFileEntity = {
           dataTxId: string;
-          dataContenType: string;
+          dataContentType: string;
         };
 
         const arfsFileKeyBase64UrlUnpadded = m[2];
@@ -190,7 +190,7 @@ self.addEventListener("fetch", (e) => {
             return responseWith(
               fileDataResponse,
               {
-                "Content-Type": fileEntity.dataContenType,
+                "Content-Type": fileEntity.dataContentType,
               },
               fileData
             );

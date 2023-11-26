@@ -13,8 +13,6 @@ loadSw().then(async () => {
       <a href="https://www.typescriptlang.org/" target="_blank">
         <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
       </a>
-      <img src="https://arfs/c7c3572e-f43b-4a6f-b747-89974ea90909" />
-      <img src="https://arfs/80d488b4-21c1-41ca-9785-52dfc36c1fd1#J2RQJRH07ogvGJzkO73W0r_49yMilO691kGi3xrRhCk" style="width: 200px; height: 200px" />
       <h1>Vite + TypeScript</h1>
       <div class="card">
         <button id="counter" type="button"></button>
@@ -29,7 +27,7 @@ loadSw().then(async () => {
   setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
   console.log("Fetching report");
   const res = await fetch(
-    "https://arweave.net/I3Zl-d-WgKD9InzyZhZZjc9_MqEFq5kPE0Ce0KmgzPk"
+    "https://arweave.net/eLpa_uJWvHgcqg1RhT_IsWy-dRj_6GxRUKRiVytP1jc"
   );
   const data = await res.text();
   document.querySelector<HTMLPreElement>("#report")!.innerHTML = data;

@@ -175,7 +175,7 @@ self.addEventListener("fetch", (e) => {
           const fileDataEncrypted = await fileDataResponse.arrayBuffer();
 
           try {
-            const fileData = await crypto.subtle.decrypt(
+            const fileDataDecrypted = await crypto.subtle.decrypt(
               {
                 ...decryptParams,
                 iv: base64.parse(
@@ -192,7 +192,7 @@ self.addEventListener("fetch", (e) => {
               {
                 "Content-Type": fileEntity.dataContentType,
               },
-              fileData
+              fileDataDecrypted
             );
           } catch (e) {
             console.error(e);

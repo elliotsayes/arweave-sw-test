@@ -55,8 +55,8 @@ self.addEventListener("activate", (e) => {
 
 // const arRegex = /^ar:\/\/([a-zA-Z0-9_-]{43})$/;
 const arweaveNetGatewayRegex = /^https:\/\/arweave\.net\/([a-zA-Z0-9_-]{43})$/;
-const ardriveRegex =
-  /^https:\/\/ardrive\/([0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12})(?:#([a-zA-Z0-9_-]{43}))?$/;
+const arfsRegex =
+  /^https:\/\/arfs\/([0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12})(?:#([a-zA-Z0-9_-]{43}))?$/;
 
 self.addEventListener("fetch", (e) => {
   const event = e as FetchEvent;
@@ -107,57 +107,53 @@ self.addEventListener("fetch", (e) => {
         return responseWith(resp, {
           "Redirect-URL": arioUrl,
         });
-      } else if ((m = ardriveRegex.exec(url)) !== null) {
-        const ardriveUuid = m[1];
-        console.log("Ardrive URL detected", ardriveUuid);
+      } else if ((m = arfsRegex.exec(url)) !== null) {
+        const arfs = m[1];
+        console.log("Arfs URL detected", arfs);
 
-        const ardriveFileTx = await getTxWhere({
+        const arfsFileTx = await getTxWhere({
           tags: [
             {
               name: "File-Id",
-              values: [ardriveUuid],
+              values: [arfs],
             },
           ],
         });
-        console.log("Ardrive File Transaction", ardriveFileTx);
+        console.log("Arfs File Transaction", arfsFileTx);
 
-        type ArdriveFileEntity = {
+        type ArfsFileEntity = {
           dataTxId: string;
           dataContenType: string;
         };
 
-        const ardriveFileKeyBase64UrlUnpadded = m[2];
-        if (ardriveFileKeyBase64UrlUnpadded) {
-          console.log("Ardrive File Key", ardriveFileKeyBase64UrlUnpadded);
+        const arfsFileKeyBase64UrlUnpadded = m[2];
+        if (arfsFileKeyBase64UrlUnpadded) {
+          console.log("Arfs File Key", arfsFileKeyBase64UrlUnpadded);
 
           // base
-          const ardriveFileKey = base64url.parse(
-            ardriveFileKeyBase64UrlUnpadded,
-            {
-              loose: true,
-            }
-          );
+          const arfsFileKey = base64url.parse(arfsFileKeyBase64UrlUnpadded, {
+            loose: true,
+          });
 
           const key = await crypto.subtle.importKey(
             "raw",
-            ardriveFileKey,
+            arfsFileKey,
             "AES-GCM",
             false,
             ["decrypt"]
           );
           const decryptParams = {
-            name: ardriveFileTx.tags
+            name: arfsFileTx.tags
               .find((t) => t.name.toLowerCase() === "cipher")!
               .value.replace("256", ""),
             iv: base64.parse(
-              ardriveFileTx.tags.find(
-                (t) => t.name.toLowerCase() === "cipher-iv"
-              )!.value
+              arfsFileTx.tags.find((t) => t.name.toLowerCase() === "cipher-iv")!
+                .value
             ),
           };
 
           const fileEntityDataEncrypted = await (
-            await fetch(`https://arweave.net/${ardriveFileTx.id}`)
+            await fetch(`https://arweave.net/${arfsFileTx.id}`)
           ).arrayBuffer();
 
           const fileEntityData = await crypto.subtle.decrypt(
@@ -167,11 +163,11 @@ self.addEventListener("fetch", (e) => {
           );
           const fileEntity = JSON.parse(
             new TextDecoder().decode(fileEntityData)
-          ) as ArdriveFileEntity;
-          console.log("Ardrive File Entity (decrypted)", fileEntity);
+          ) as ArfsFileEntity;
+          console.log("Arfs File Entity (decrypted)", fileEntity);
 
           const fileDataTx = await getTx(fileEntity.dataTxId);
-          console.log("Ardrive File Data Transaction", fileDataTx);
+          console.log("Arfs File Data Transaction", fileDataTx);
 
           const fileDataResponse = await fetch(
             `https://arweave.net/${fileEntity.dataTxId}`
@@ -208,9 +204,9 @@ self.addEventListener("fetch", (e) => {
         }
 
         const fileEntity = (await (
-          await fetch(`https://arweave.net/${ardriveFileTx.id}`)
-        ).json()) as ArdriveFileEntity;
-        console.log("Ardrive File Entity", fileEntity);
+          await fetch(`https://arweave.net/${arfsFileTx.id}`)
+        ).json()) as ArfsFileEntity;
+        console.log("Arfs File Entity", fileEntity);
 
         return await fetch(`https://arweave.net/${fileEntity.dataTxId}`);
       } else {

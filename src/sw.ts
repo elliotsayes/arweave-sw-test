@@ -2,6 +2,7 @@
 
 import { HttpClient } from "@effect/platform";
 import { Effect, Stream } from "effect";
+import { toReadableStream } from "effect/Stream";
 
 self.addEventListener(
   "message",
@@ -35,30 +36,27 @@ self.addEventListener("fetch", (e) => {
         console.log("arweave.net Request: ", url);
 
         const program = Effect.gen(function* (_) {
-          const req = HttpClient.request.get(url, {
-            acceptJson: true,
-          });
-          const data = req.pipe(
-            HttpClient.client.fetch(),
-            Effect.map((x) => x.stream),
-            Stream.flatten(),
+          const res = yield* _(
+            HttpClient.request.get(url),
+            HttpClient.client.fetch()
+          );
+
+          const data = res.stream.pipe(
             Stream.tap((x) =>
               Effect.sync(() => console.log("Byte Chunk Length: ", x.length))
             ),
             Stream.map((x) => new TextDecoder().decode(x)),
-            Stream.map((x) => x.toUpperCase()),
-            Stream.map((x) => new TextEncoder().encode(x)),
             Stream.tap((x) =>
               Effect.sync(() => console.log("Text Chunk Length: ", x.length))
             ),
-            Stream.toReadableStream
+            Stream.map((x) => x.toUpperCase()),
+            Stream.map((x) => new TextEncoder().encode(x)),
+            toReadableStream
           );
+
           return new Response(data, {
-            status: 200,
-            statusText: "OK",
-            headers: {
-              "content-type": "text/plain",
-            },
+            status: res.status,
+            headers: res.headers,
           });
         });
 

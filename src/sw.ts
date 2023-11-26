@@ -1,25 +1,8 @@
 /// <reference lib="webworker" />
 
-import { inflate } from "pako";
-import arweaveGraphql from "arweave-graphql";
-import { base64, base64url } from "rfc4648";
-const gqlClient = arweaveGraphql("https://arweave.net/graphql", {
-  fetch: fetch,
-});
-
-const getTx = async (txId: string) => {
-  const queryRes = await gqlClient.getTransactions({
-    ids: [txId],
-  });
-  return queryRes.transactions.edges[0].node;
-};
-
-const getTxWhere = async (
-  variables: Parameters<(typeof gqlClient)["getTransactions"]>[0]
-) => {
-  const queryRes = await gqlClient.getTransactions(variables);
-  return queryRes.transactions.edges[0].node;
-};
+import { HttpClient } from "@effect/platform";
+import { Effect, Stream } from "effect";
+import { request } from "effect/Effect";
 
 const responseWith = (
   response: Response,
@@ -53,11 +36,6 @@ self.addEventListener("activate", (e) => {
   console.log("[Service Worker] Activate", e);
 });
 
-// const arRegex = /^ar:\/\/([a-zA-Z0-9_-]{43})$/;
-const arweaveNetGatewayRegex = /^https:\/\/arweave\.net\/([a-zA-Z0-9_-]{43})$/;
-const arfsRegex =
-  /^https:\/\/arfs\/([0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12})(?:#([a-zA-Z0-9_-]{43}))?$/;
-
 self.addEventListener("fetch", (e) => {
   const event = e as FetchEvent;
   console.log(`[Service Worker] Fetch ${event.request.url}`);
@@ -66,8 +44,38 @@ self.addEventListener("fetch", (e) => {
     (async () => {
       const url = event.request.url;
 
-      // console.log("Base URL detected", url);
-      return await fetch(url);
+      if (
+        url ===
+        "https://pc5fv7xck26hqhfkbviykp6iwfwl45iy77ugyukqurrfok2p2y3q.arweave.net/eLpa_uJWvHgcqg1RhT_IsWy-dRj_6GxRUKRiVytP1jc"
+      ) {
+        console.log("arweave.net Request: ", url);
+
+        const program = Effect.promise(async () => {
+          const req = HttpClient.request.get(url, {
+            acceptJson: true,
+          });
+          const data = req.pipe(
+            HttpClient.client.fetch(),
+            Effect.map((x) => x.stream),
+            Stream.flatMap((x) => x),
+            Stream.tap((x) =>
+              Effect.succeed(console.log("Chunk Length: ", x.length))
+            ),
+            Stream.map((x) =>
+              new TextEncoder().encode(
+                new TextDecoder().decode(x).toUpperCase()
+              )
+            ),
+            Stream.toReadableStream
+          );
+          return new Response(data);
+        });
+
+        const transformed = await Effect.runPromise(program);
+        return transformed;
+      }
+
+      return fetch(event.request);
     })()
   );
 });

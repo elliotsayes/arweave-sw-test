@@ -27,7 +27,7 @@ loadSw().then(async () => {
   setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
   console.log("Fetching report");
   const res = await fetch(
-    "https://arweave.net/eLpa_uJWvHgcqg1RhT_IsWy-dRj_6GxRUKRiVytP1jc"
+    "https://pc5fv7xck26hqhfkbviykp6iwfwl45iy77ugyukqurrfok2p2y3q.arweave.net/eLpa_uJWvHgcqg1RhT_IsWy-dRj_6GxRUKRiVytP1jc"
   );
   const data = await res.text();
   document.querySelector<HTMLPreElement>("#report")!.innerHTML = data;
